@@ -3,6 +3,28 @@ set -euo pipefail
 
 LWL_VERSION="4.22.2"
 SOURCE_DIR="/tmp/lwl-drivers"
+PUBLIC_CERT="/usr/share/lwl-secureboot/lwl-modules.der"
+PRIVATE_KEY_B64="/run/secrets/lwl-module-signing-key.b64"
+PRIVATE_KEY="/tmp/lwl-module-signing-key.pem"
+
+cleanup() {
+    rm -f "${PRIVATE_KEY}"
+}
+
+trap cleanup EXIT
+
+if [[ ! -f "${PUBLIC_CERT}" ]]; then
+    echo "ERROR: public module-signing certificate is missing"
+    exit 1
+fi
+
+if [[ ! -f "${PRIVATE_KEY_B64}" ]]; then
+    echo "ERROR: private module-signing key secret is missing"
+    exit 1
+fi
+
+base64 --decode "${PRIVATE_KEY_B64}" > "${PRIVATE_KEY}"
+chmod 600 "${PRIVATE_KEY}"
 
 echo "Locating the Fedora kernel development tree..."
 
@@ -58,6 +80,37 @@ echo "Building LWL modules for ${KERNEL}..."
         -j"$(nproc)"
 )
 
+SIGN_FILE="${KDIR}/scripts/sign-file"
+
+if [[ ! -x "${SIGN_FILE}" ]]; then
+    echo "ERROR: kernel sign-file utility is missing: ${SIGN_FILE}"
+    exit 1
+fi
+
+echo "Signing built LWL modules..."
+
+mapfile -d '' BUILT_MODULES < <(
+    find "${SOURCE_DIR}" \
+        -type f \
+        -name '*.ko' \
+        -print0
+)
+
+if (( ${#BUILT_MODULES[@]} == 0 )); then
+    echo "ERROR: no compiled kernel modules were found"
+    exit 1
+fi
+
+for module in "${BUILT_MODULES[@]}"; do
+    echo "Signing: ${module}"
+
+    "${SIGN_FILE}" \
+        sha256 \
+        "${PRIVATE_KEY}" \
+        "${PUBLIC_CERT}" \
+        "${module}"
+done
+
 echo "Installing LWL modules into the image..."
 
 make \
@@ -103,7 +156,20 @@ for module in "${required_modules[@]}"; do
         exit 1
     fi
 
-    echo "Found module: ${module}"
+    signer="$(
+        modinfo \
+          -k "${KERNEL}" \
+          -F signer \
+          "${module}"
+    )"
+
+    if [[ -z "${signer}" ]]; then
+        echo "ERROR: module ${module} is not signed"
+        exit 1
+    fi
+
+    echo "Found signed module: ${module}"
+    echo "Signer: ${signer}"
 done
 
 echo "Installed LWL module files:"

@@ -3,3 +3,7 @@ cosign.private
 /Containerfile
 *.iso
 *.iso-CHECKSUM
+
+# Never commit private module-signing keys
+*.key
+*.pem

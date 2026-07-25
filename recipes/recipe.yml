@@ -35,6 +35,7 @@ modules:
 
         # Recommended by the LWL package metadata
         - udev-hid-bpf
+        - mokutil
 
     remove:
       packages:
@@ -43,7 +44,14 @@ modules:
         - firefox
         - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
 
-  - type: script
+    - type: script
+    secrets:
+      - type: env
+        name: LWL_MODULE_SIGNING_KEY_B64
+        mount:
+          type: file
+          destination: /run/secrets/lwl-module-signing-key.b64
+
     scripts:
       - build-lwl-drivers.sh
 
