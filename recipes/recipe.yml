@@ -19,12 +19,6 @@ modules:
 
   - type: dnf
     repos:
-      # Remove temporary build repositories from the finished image.
-      cleanup: true
-      files:
-        - https://comexr.github.io/comexr.repo
-      keys:
-        - https://comexr.github.io/comexr.asc
       copr:
         - atim/starship
     install:
@@ -32,17 +26,16 @@ modules:
         - micro
         - starship
 
-        # Required to compile the LWL DKMS modules
-        - kernel-devel-matched
-        - dkms
+        # Required to download and compile the LWL source
+        - git-core
         - gcc
         - make
+        - kernel-devel-matched
         - elfutils-libelf-devel
 
-        # Force the package to come from the Comexr repository
-        - repo: comexr
-          packages:
-            - lwl-drivers
+        # Recommended by the LWL package metadata
+        - udev-hid-bpf
+
     remove:
       packages:
         # example: removing firefox (in favor of the flatpak)
@@ -50,39 +43,9 @@ modules:
         - firefox
         - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
 
-  # Verify that the package produced actual kernel modules.
-  # The build must fail rather than publishing an image without drivers.
   - type: script
     snippets:
-      - |
-        set -eu
-
-        echo "Checking lwl-drivers package..."
-        rpm -q lwl-drivers
-
-        echo "Searching for LWL kernel modules..."
-
-        find /usr/lib/modules \
-          -type f \
-          \( \
-            -name 'clevo*.ko*' \
-            -o -name 'lwl*.ko*' \
-            -o -name 'uniwill*.ko*' \
-            -o -name 'ite*.ko*' \
-            -o -name 'tuxi*.ko*' \
-            -o -name 'stk8321*.ko*' \
-            -o -name 'gxtp7380*.ko*' \
-          \) \
-          -print > /tmp/lwl-modules.txt
-
-        cat /tmp/lwl-modules.txt
-
-        if ! test -s /tmp/lwl-modules.txt; then
-          echo "ERROR: lwl-drivers was installed, but no kernel modules were found."
-          exit 1
-        fi
-
-        echo "LWL kernel modules were successfully included."
+      - build-lwl-drivers.sh
 
   - type: default-flatpaks
     configurations:
