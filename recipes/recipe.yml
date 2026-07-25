@@ -3,11 +3,11 @@
 # image will be published to ghcr.io/<user>/<name>
 name: lwl-zilverblue
 # description will be included in the image's metadata
-description: This is my personal OS image.
+description: This is my personal OS image Fedora Silverblue 44 with LaptopWithLinux drivers.
 
 # the base image to build on top of (FROM) and the version tag to use
 base-image: ghcr.io/ublue-os/silverblue-main
-image-version: 42 # latest is also supported if you want new updates ASAP
+image-version: 44 # latest is also supported if you want new updates ASAP
 
 # module configuration, executed in order
 # you can include multiple instances of the same module
@@ -25,12 +25,27 @@ modules:
       packages:
         - micro
         - starship
+
+        # Required to download and compile the LWL source
+        - git-core
+        - gcc
+        - make
+        - kernel-devel-matched
+        - elfutils-libelf-devel
+
+        # Recommended by the LWL package metadata
+        - udev-hid-bpf
+
     remove:
       packages:
         # example: removing firefox (in favor of the flatpak)
         # "firefox" is the main package, "firefox-langpacks" is a dependency
         - firefox
         - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
+
+  - type: script
+    scripts:
+      - build-lwl-drivers.sh
 
   - type: default-flatpaks
     configurations:
