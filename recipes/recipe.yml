@@ -44,7 +44,7 @@ modules:
         - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
 
   - type: script
-    snippets:
+    scripts:
       - build-lwl-drivers.sh
 
   - type: default-flatpaks
