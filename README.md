@@ -41,3 +41,8 @@ These images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](ht
 ```bash
 cosign verify --key cosign.pub ghcr.io/juanestebanpradaespinosa/lwl-zilverblue
 ```
+
+### Left to do:
+- finish readme doc for setting up the drivers and enabling amd display rendering
+- create new branch for no secure boot install of drivers to enable hypernation
+- Main branch i attempted to sign the drivers to enable secure boot but this make it disable hypernation to be locked the kernels!
